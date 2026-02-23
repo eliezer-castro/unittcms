@@ -111,7 +111,9 @@ export default function RunEditor({
   const [statusFilter, setStatusFilter] = useState<number[]>([]);
   const [tagFilter, setTagFilter] = useState<number[]>([]);
   const router = useRouter();
-  useFormGuard(isDirty, messages.areYouSureLeave);
+
+  // not show warning when navigating to test case detail page
+  useFormGuard(isDirty, messages.areYouSureLeave, [`/projects/${projectId}/runs/${runId}/cases/\\d+`]);
 
   const fetchRunAndStatusCount = async () => {
     const { run, statusCounts } = await fetchRun(tokenContext.token.access_token, Number(runId));
@@ -136,7 +138,10 @@ export default function RunEditor({
     setTestCases(casesData);
   };
 
+  const isSignedIn = tokenContext.isSignedIn();
   useEffect(() => {
+    if (!isSignedIn) return;
+
     async function fetchDataEffect() {
       if (!tokenContext.isSignedIn()) {
         return;
@@ -156,7 +161,7 @@ export default function RunEditor({
 
     fetchDataEffect();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [tokenContext]);
+  }, [isSignedIn]);
 
   useEffect(() => {
     function onFilter() {
@@ -500,8 +505,11 @@ export default function RunEditor({
               )}
             </Tree>
           </div>
-          <div className="w-9/12">
+          <div className="w-9/12 overflow-x-auto">
             <TestCaseSelector
+              projectId={projectId}
+              runId={runId}
+              locale={locale}
               cases={filteredTestCases}
               isDisabled={!tokenContext.isProjectReporter(Number(projectId))}
               selectedKeys={selectedKeys}

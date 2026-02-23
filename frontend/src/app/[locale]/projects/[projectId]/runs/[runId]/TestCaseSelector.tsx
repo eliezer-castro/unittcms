@@ -13,10 +13,11 @@ import {
   DropdownItem,
   Selection,
   SortDescriptor,
+  Chip,
 } from '@heroui/react';
-import { ChevronDown, MoveDiagonal, MoreVertical, CopyPlus, CopyMinus } from 'lucide-react';
-import TestCaseDetailDialog from './TestCaseDetailDialog';
+import { ChevronDown, MoreVertical, CopyPlus, CopyMinus, MessageCircle } from 'lucide-react';
 import RunCaseStatus from './RunCaseStatus';
+import { Link, NextUiLinkClasses } from '@/src/i18n/routing';
 import { testRunCaseStatus } from '@/config/selection';
 import { CaseType } from '@/types/case';
 import { RunMessages } from '@/types/run';
@@ -26,6 +27,9 @@ import { TestTypeMessages } from '@/types/testType';
 import { TestRunCaseStatusMessages } from '@/types/status';
 
 type Props = {
+  projectId: string;
+  runId: string;
+  locale: string;
   cases: CaseType[];
   isDisabled: boolean;
   selectedKeys: Selection;
@@ -40,6 +44,9 @@ type Props = {
 };
 
 export default function TestCaseSelector({
+  projectId,
+  runId,
+  locale,
   cases,
   isDisabled,
   selectedKeys,
@@ -49,14 +56,15 @@ export default function TestCaseSelector({
   onExcludeCase,
   messages,
   testRunCaseStatusMessages,
-  testTypeMessages,
   priorityMessages,
 }: Props) {
   const headerColumns = [
     { name: messages.id, uid: 'id', sortable: true },
     { name: messages.title, uid: 'title', sortable: true },
     { name: messages.priority, uid: 'priority', sortable: true },
+    { name: messages.tags, uid: 'tags', sortable: false },
     { name: messages.status, uid: 'runStatus', sortable: true },
+    { name: messages.comments, uid: 'comments', sortable: false },
     { name: messages.actions, uid: 'actions' },
   ];
 
@@ -104,29 +112,44 @@ export default function TestCaseSelector({
 
     return isIncluded;
   };
-
   const renderCell = (testCase: CaseType, columnKey: string): ReactNode => {
     const cellValue = testCase[columnKey as keyof CaseType];
     const isIncluded = isCaseIncluded(testCase);
     const runStatus = testCase.RunCases && testCase.RunCases.length > 0 ? testCase.RunCases[0].status : 0;
+    const commentCount = testCase.RunCases && testCase.RunCases.length > 0 ? testCase.RunCases[0].commentCount || 0 : 0;
 
     switch (columnKey) {
       case 'title':
         return (
-          <Button
-            size="sm"
-            variant="light"
-            className="group"
-            endContent={<MoveDiagonal size={12} className="text-transparent group-hover:text-inherit" />}
-            onPress={() => showTestCaseDetailDialog(testCase.id)}
-          >
-            {cellValue as string}
-          </Button>
+          <div className={isIncluded ? '' : notIncludedCaseClass}>
+            <Link
+              href={`/projects/${projectId}/runs/${runId}/cases/${testCase.id}`}
+              locale={locale}
+              className={NextUiLinkClasses}
+              onPointerDown={(e) => e.stopPropagation()}
+            >
+              {cellValue as string}
+            </Link>
+          </div>
         );
       case 'priority':
         return (
           <div className={isIncluded ? '' : notIncludedCaseClass}>
             <TestCasePriority priorityValue={cellValue as number} priorityMessages={priorityMessages} />
+          </div>
+        );
+      case 'tags':
+        return (
+          <div className={`flex gap-1 flex-wrap ${isIncluded ? '' : notIncludedCaseClass}`}>
+            {testCase.Tags && testCase.Tags.length > 0 ? (
+              testCase.Tags.map((tag) => (
+                <Chip key={tag.id} size="sm" variant="flat">
+                  {tag.name}
+                </Chip>
+              ))
+            ) : (
+              <span>-</span>
+            )}
           </div>
         );
       case 'runStatus':
@@ -157,6 +180,24 @@ export default function TestCaseSelector({
               ))}
             </DropdownMenu>
           </Dropdown>
+        );
+      case 'comments':
+        return (
+          <div className={isIncluded ? '' : notIncludedCaseClass}>
+            {isIncluded && commentCount > 0 ? (
+              <Link
+                href={`/projects/${projectId}/runs/${runId}/cases/${testCase.id}?tab=comments`}
+                locale={locale}
+                className="flex items-center gap-1"
+                onPointerDown={(e) => e.stopPropagation()}
+              >
+                <MessageCircle size={16} />
+                <span>{commentCount}</span>
+              </Link>
+            ) : (
+              <span className="text-default-400">-</span>
+            )}
+          </div>
         );
       case 'actions':
         return (
@@ -222,17 +263,6 @@ export default function TestCaseSelector({
     onSelectionChange(keys);
   };
 
-  // Test Case Detail
-  const [isTestCaseDetailDialogOpen, setIsTestCaseDetailDialogOpen] = useState(false);
-  const [showingTestCaseId, setShowingTestCaseId] = useState<number>(0);
-  const showTestCaseDetailDialog = (showTestCaseId: number) => {
-    setIsTestCaseDetailDialogOpen(true);
-    setShowingTestCaseId(showTestCaseId);
-  };
-  const hideTestCaseDetailDialog = () => {
-    setIsTestCaseDetailDialogOpen(false);
-  };
-
   return (
     <>
       <Table
@@ -267,15 +297,6 @@ export default function TestCaseSelector({
           ))}
         </TableBody>
       </Table>
-
-      <TestCaseDetailDialog
-        isOpen={isTestCaseDetailDialogOpen}
-        caseId={showingTestCaseId}
-        onCancel={hideTestCaseDetailDialog}
-        messages={messages}
-        priorityMessages={priorityMessages}
-        testTypeMessages={testTypeMessages}
-      />
     </>
   );
 }

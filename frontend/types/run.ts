@@ -89,6 +89,31 @@ type RunMessages = {
   selected: string;
   tags: string;
   selectTags: string;
+  comments: string;
 };
 
-export type { RunType, RunCaseType, RunStatusCountType, ProgressSeriesType, RunsMessages, RunMessages };
+type RunDetailMessages = {
+  title: string;
+  description: string;
+  priority: string;
+  type: string;
+  tags: string;
+  testDetail: string;
+  steps: string;
+  preconditions: string;
+  expectedResult: string;
+  detailsOfTheStep: string;
+  caseDetail: string;
+  comments: string;
+  history: string;
+};
+
+export type {
+  RunType,
+  RunCaseType,
+  RunStatusCountType,
+  ProgressSeriesType,
+  RunsMessages,
+  RunMessages,
+  RunDetailMessages,
+};
